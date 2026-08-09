@@ -19,10 +19,16 @@ Log every queued take in `prompts/take-log.md` immediately.
 Per shot sh01 → sh07:
 1. Open `workflows/wf2_shot_r2v.json`. Upload the 5 ref images: the template ships 2 LoadImage nodes already connected + 1 spare socket; add 3 more LoadImage nodes in the Comfy Cloud editor and connect them (sockets materialize as each is connected, up to 9 total).
 2. Paste the FULL "Copy-paste prompt" from `prompts/shNN.md`. Set duration per the card (4 or 5 s) via the PrimitiveFloat value node labeled 'duration' feeding the H3 node; resolution is preset to 1344×768 via ResolutionSelector (16:9, 0.98 MP) — don't touch it.
-3. Set seed = seed_base + take number (sh03 take 2 → 3002). Queue. Log the take.
-4. Two takes per shot; keep the better → download as `assets/clips/keepers/shNN.mp4`.
+3. Set seed = seed_base + take number (sh03 take 2 → 3002). The workflows ship with the seed
+   control widget set to "fixed", so the typed seed is used verbatim on every queue — type the
+   new seed for every take per this convention (don't rely on the old "randomize" behavior).
+   Queue. Log the take.
+4. Two takes per shot; keep the better → download as `assets/clips/keepers/shNN.mp4`. Archive
+   every non-keeper take locally too, as `shNN_takeNN_seedNNNN.mp4` per spec §4.2, so a
+   discarded take can still be inspected or reused later.
 5. Three failed takes → STOP re-rolling. Fallback: `wf3a_keyframe.json` (compose the keyframe
-   from refs; review the still) → `wf3b_i2v.json` (animate it). Log `wf3` in the take log.
+   from refs; review the still — prerequisite: resize the composed keyframe input to 1344×768,
+   see `workflows/README.md`) → `wf3b_i2v.json` (animate it). Log `wf3` in the take log.
 6. Watch for: face blending (regenerate; if persistent, recompose wider), wardrobe drift
    (check signature colors), physics nonsense (simplify the Action line to ONE clear event).
 
@@ -33,7 +39,7 @@ Per shot sh01 → sh07:
 ## Gate 4 — Assembly + final review (local)
 1. `scripts/assemble.sh projects/magnificent-failure-five`
 2. Review `output/final_1080p.mp4` against the spec checklist: 28–32 s total; narrator audible
-   over music (music sits ~10-12 dB under VO by construction); no dead air; title lands on the
+   over music (music sits −12 dB under VO by construction); no dead air; title lands on the
    final beat; every gag reads in one viewing.
 3. Fix list → regenerate only the offending shot (its seed + workflow are in the take log), re-run assembly.
 4. Ship. Commit the take log and push.

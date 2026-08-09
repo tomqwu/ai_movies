@@ -54,10 +54,10 @@ for s in "${SHOTS[@]}"; do
   t=$(python3 -c "print($t + $d)")
 done
 
-# 4) Audio mix: native clip audio (0.5) + music bed (0.30, faded out) + narrator (1.0).
+# 4) Audio mix: native clip audio (0.5) + music bed (0.25, faded out) + narrator (1.0).
 FADE_ST=$(python3 -c "print(max(0, float('$TOTAL') - 1.5))")
 inputs=(-i "$TMP/timeline.mp4" -i "$AUDIO/music.mp3")
-filter="[0:a]volume=0.5[native];[1:a]volume=0.30,afade=t=out:st=$FADE_ST:d=1.5[music];"
+filter="[0:a]volume=0.5[native];[1:a]volume=0.25,afade=t=out:st=$FADE_ST:d=1.5[music];"
 mix="[native][music]"
 n=2
 for i in "${!SHOTS[@]}"; do
@@ -67,7 +67,7 @@ for i in "${!SHOTS[@]}"; do
   mix+="[v$n]"
   n=$((n + 1))
 done
-filter+="${mix}amix=inputs=$n:normalize=0,loudnorm=I=-14:TP=-1.5:LRA=11[aout]"
+filter+="${mix}amix=inputs=$n:normalize=0:duration=first,loudnorm=I=-14:TP=-1.5:LRA=11,aresample=48000[aout]"
 
 # 5) Title overlay over the last 2.5s, then render.
 FONT="/System/Library/Fonts/Supplemental/Impact.ttf"

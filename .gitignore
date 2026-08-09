@@ -9,6 +9,7 @@ projects/*/output/**
 # OS / editor noise
 .DS_Store
 *.swp
+__pycache__/
 
 # Subagent-driven-development scratch (briefs, reports, ledger)
 .superpowers/

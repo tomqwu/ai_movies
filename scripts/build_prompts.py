@@ -23,6 +23,8 @@ def load_block(path: pathlib.Path) -> str:
 
 
 def main() -> None:
+    if len(sys.argv) != 2:
+        sys.exit("usage: build_prompts.py <project-dir>")
     proj = pathlib.Path(sys.argv[1])
     chars_dir = proj / "characters"
     data = json.loads((proj / "prompts" / "shots.json").read_text())

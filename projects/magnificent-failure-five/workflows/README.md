@@ -11,9 +11,35 @@ verified.
 |---|---|---|
 | wf1_cast_sheet.json | character reference stills (FLUX) | 832×1216 default (individual refs); group shot switches to 1344×768 in-editor; seed per cast-sheet-prompts.md |
 | wf2_shot_r2v.json | per-shot video: H3 Reference-to-Video | 1344×768, 5 s, native audio; load refs from assets/refs/; paste prompt from prompts/shNN.md; seed from take-log convention |
-| wf3a_keyframe.json | fallback stage 1: Qwen-Image-Edit keyframe from refs | template unchanged (no size widget); operator resizes the composed reference to 1344×768 before running |
+| wf3a_keyframe.json | fallback stage 1: Qwen-Image-Edit keyframe from refs | no size widget (unpatched from template except seed control); operator resizes the composed reference to 1344×768 before running |
 | wf3b_i2v.json | fallback stage 2: H3 Image-to-Video from keyframe | 1344×768, 5 s default (adjust per shot), native audio |
 | templates/ | pristine upstream templates (never edit) | see SOURCES.md |
+
+## Seed control (reproducibility)
+
+Every seed-bearing node in all four workflows — `KSampler` in `wf1_cast_sheet.json` (node 50)
+and `wf3a_keyframe.json` (node 169); `RandomNoise` in `wf2_shot_r2v.json` (node 129) and
+`wf3b_i2v.json` (node 15) — shipped from its template with the control widget
+(`widgets_values[1]`) set to `"randomize"`, which silently scrambles the typed seed after every
+queue: takes were not reproducible from the seed you typed and logged. Patched to `"fixed"` so
+the seed you type is the seed that runs, on every queue, verbatim:
+
+```bash
+python3 scripts/patch_workflow.py wf1_cast_sheet.json wf1_cast_sheet.json KSampler 1 fixed
+python3 scripts/patch_workflow.py wf2_shot_r2v.json wf2_shot_r2v.json RandomNoise 1 fixed
+python3 scripts/patch_workflow.py wf3a_keyframe.json wf3a_keyframe.json KSampler 1 fixed
+python3 scripts/patch_workflow.py wf3b_i2v.json wf3b_i2v.json RandomNoise 1 fixed
+```
+
+Diff-vs-template impact, one clause per file (`diff <(jq -S . templates/X) <(jq -S . wfN)`):
+- `wf1_cast_sheet.json` — was a 2-line size-only diff (832×1216 vs. the template's 1024×1024
+  default); now 3 lines with the added control-widget line.
+- `wf2_shot_r2v.json` — was a 1-line diff (`ResolutionSelector` megapixels only); now 2 lines
+  with the added control-widget line.
+- `wf3a_keyframe.json` — was byte-identical (0-line diff); now differs by exactly that 1
+  control-widget line (see below).
+- `wf3b_i2v.json` — was a 2-line diff (`ResolutionSelector` aspect ratio + megapixels); now
+  3 lines with the added control-widget line.
 
 ## wf2_shot_r2v.json — how the 1344×768 / 5 s patch works
 
@@ -69,9 +95,12 @@ its `widgets_values: []` — a parameterless node with only an `image` input) �
 width/height gets set; `FluxKontextImageScale` snaps whatever image it receives to Flux
 Kontext's own nearest preferred-resolution bucket.
 
-Per the brief's contingency for this exact case, `wf3a_keyframe.json` is a **byte-identical
-copy** of `templates/qwen_image_edit.json` (verified: `diff <(jq -S . templates/qwen_image_edit.json) <(jq -S . wf3a_keyframe.json)`
-is empty) — no `patch_workflow.py` run, nothing to patch. **Operator action:** resize the
+Per the brief's contingency for this exact case, `wf3a_keyframe.json` started as a
+**byte-identical copy** of `templates/qwen_image_edit.json` and stays that way except for the
+seed-control patch documented in "Seed control (reproducibility)" above: `diff <(jq -S .
+templates/qwen_image_edit.json) <(jq -S . wf3a_keyframe.json)` now shows exactly that one
+`KSampler` control-widget line (`"randomize"` → `"fixed"`), nothing else. **Operator action:**
+resize the
 composed reference/keyframe input image to 1344×768 *before* loading it into this workflow
 (e.g. with the KJNodes "Resize Image" node added in-editor, or any equivalent pre-processing
 step) so `FluxKontextImageScale`'s nearest-bucket snap lands on 1344×768 rather than some other
@@ -107,11 +136,13 @@ through. Full chain, outermost to innermost:
   a 17-frame/24fps grid. The template's own default is already `5`, so `patch_workflow.py`
   re-asserts **index 3 → `5`** (idempotent).
 
-Net effect: **the entire functional diff between `wf3b_i2v.json` and its template is 2 lines**
+Net effect: **the functional diff between `wf3b_i2v.json` and its template was 2 lines**
 (`ResolutionSelector`'s aspect ratio and megapixels) — every other patch command ran against a
-value the template already shipped correctly, confirmed via `diff <(jq -S . templates/video_minimax_h3_i2v.json) <(jq -S . wf3b_i2v.json)`.
+value the template already shipped correctly. The seed-control patch documented in "Seed
+control (reproducibility)" above adds one more, for **3 lines total**, confirmed via `diff
+<(jq -S . templates/video_minimax_h3_i2v.json) <(jq -S . wf3b_i2v.json)`.
 
-Exact command used:
+Exact commands used:
 
 ```bash
 python3 scripts/patch_workflow.py \
@@ -124,6 +155,11 @@ python3 scripts/patch_workflow.py \
   4c314f31-ecda-4b08-ae98-faaba1bf613f 3 5 \
   MiniMaxH3ImageToVideo 1 1344 \
   MiniMaxH3ImageToVideo 2 768
+
+python3 scripts/patch_workflow.py \
+  projects/magnificent-failure-five/workflows/wf3b_i2v.json \
+  projects/magnificent-failure-five/workflows/wf3b_i2v.json \
+  RandomNoise 1 fixed
 ```
 
 (`4c314f31-ecda-4b08-ae98-faaba1bf613f` is the subgraph-instance node's `type` — the UUID

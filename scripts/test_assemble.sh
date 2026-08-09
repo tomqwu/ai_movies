@@ -3,7 +3,9 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-PROJ="$(mktemp -d)/proj"
+TMPROOT="$(mktemp -d)"
+trap 'rm -rf "$TMPROOT"' EXIT
+PROJ="$TMPROOT/proj"
 mkdir -p "$PROJ/assets/clips/keepers" "$PROJ/assets/audio/narrator"
 
 lens=(5 4 4 4 4 5 4)
@@ -15,7 +17,7 @@ for i in 1 2 3 4 5 6 7; do
   ffmpeg -y -v error -f lavfi -i "sine=frequency=880:duration=0.8" \
     "$PROJ/assets/audio/narrator/n0$i.wav"
 done
-ffmpeg -y -v error -f lavfi -i "sine=frequency=220:duration=30" -c:a libmp3lame \
+ffmpeg -y -v error -f lavfi -i "sine=frequency=220:duration=40" -c:a libmp3lame \
   "$PROJ/assets/audio/music.mp3"
 
 scripts/assemble.sh "$PROJ"
@@ -27,6 +29,7 @@ A=$(ffprobe -v error -select_streams a:0 -show_entries stream=codec_type -of csv
 H=$(ffprobe -v error -select_streams v:0 -show_entries stream=height -of csv=p=0 "$OUT")
 FPS=$(ffprobe -v error -select_streams v:0 -show_entries stream=r_frame_rate -of csv=p=0 "$OUT")
 PIX=$(ffprobe -v error -select_streams v:0 -show_entries stream=pix_fmt -of csv=p=0 "$OUT")
+SR=$(ffprobe -v error -select_streams a:0 -show_entries stream=sample_rate -of csv=p=0 "$OUT")
 
 python3 -c "d=float('$DUR'); assert 28 <= d <= 32, f'duration {d} out of range'"
 [ "$W" = "1920" ] || { echo "FAIL: width $W != 1920"; exit 1; }
@@ -34,7 +37,8 @@ python3 -c "d=float('$DUR'); assert 28 <= d <= 32, f'duration {d} out of range'"
 [ "$H" = "1080" ] || { echo "FAIL: height $H != 1080"; exit 1; }
 [ "$FPS" = "24/1" ] || { echo "FAIL: fps $FPS != 24/1"; exit 1; }
 [ "$PIX" = "yuv420p" ] || { echo "FAIL: pix_fmt $PIX != yuv420p"; exit 1; }
-echo "PASS: happy path (1920x1080 @ 24fps yuv420p, ${DUR}s, audio ok)"
+[ "$SR" = "48000" ] || { echo "FAIL: sample_rate $SR != 48000"; exit 1; }
+echo "PASS: happy path (1920x1080 @ 24fps yuv420p, ${DUR}s, audio ok @ 48000Hz)"
 
 # Negative path: remove narrator line, verify fail-fast without re-encoding.
 rm "$PROJ/assets/audio/narrator/n04.wav"
