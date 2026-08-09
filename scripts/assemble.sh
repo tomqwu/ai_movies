@@ -7,11 +7,8 @@ PROJ="${1:?usage: assemble.sh <project-dir>}"
 CLIPS="$PROJ/assets/clips/keepers"
 AUDIO="$PROJ/assets/audio"
 OUT="$PROJ/output"
-TMP="$(mktemp -d)"
-trap 'rm -rf "$TMP"' EXIT
-mkdir -p "$OUT"
 
-# Early input validation: fail fast before any encoding.
+# Early input validation: fail fast before any side effects.
 [ -d "$PROJ" ] || { echo "no such project dir: $PROJ" >&2; exit 1; }
 command -v python3 >/dev/null || { echo "python3 required" >&2; exit 1; }
 [ -f "$AUDIO/music.mp3" ] || { echo "missing $AUDIO/music.mp3" >&2; exit 1; }
@@ -21,11 +18,20 @@ done
 
 SHOTS=(sh01 sh02 sh03 sh04 sh05 sh06 sh07)
 
+# Check all keeper files exist before creating any directories
+for s in "${SHOTS[@]}"; do
+  [ -f "$CLIPS/$s.mp4" ] || { echo "missing keeper: $CLIPS/$s.mp4" >&2; exit 1; }
+done
+
+# Now safe to create working directory
+TMP="$(mktemp -d)"
+trap 'rm -rf "$TMP"' EXIT
+mkdir -p "$OUT"
+
 # 1) Normalize every keeper: 1920x1080 (lanczos + light sharpen), 24fps, uniform codecs.
 # Keepers may come from heterogeneous encoders; uniform pix_fmt makes concat -c copy safe.
 for s in "${SHOTS[@]}"; do
   in="$CLIPS/$s.mp4"
-  [ -f "$in" ] || { echo "missing keeper: $in" >&2; exit 1; }
   ffmpeg -y -v error -i "$in" \
     -vf "scale=1920:1080:flags=lanczos,fps=24,unsharp=5:5:0.4,format=yuv420p" \
     -af "aresample=48000" -ac 2 \
@@ -49,7 +55,6 @@ for s in "${SHOTS[@]}"; do
 done
 
 # 4) Audio mix: native clip audio (0.5) + music bed (0.30, faded out) + narrator (1.0).
-[ -f "$AUDIO/music.mp3" ] || { echo "missing $AUDIO/music.mp3" >&2; exit 1; }
 FADE_ST=$(python3 -c "print(max(0, float('$TOTAL') - 1.5))")
 inputs=(-i "$TMP/timeline.mp4" -i "$AUDIO/music.mp3")
 filter="[0:a]volume=0.5[native];[1:a]volume=0.30,afade=t=out:st=$FADE_ST:d=1.5[music];"
@@ -57,7 +62,6 @@ mix="[native][music]"
 n=2
 for i in "${!SHOTS[@]}"; do
   f="$AUDIO/narrator/n0$((i + 1)).wav"
-  [ -f "$f" ] || { echo "missing narrator line: $f" >&2; exit 1; }
   inputs+=(-i "$f")
   filter+="[$n:a]adelay=${offsets[$i]}|${offsets[$i]}[v$n];"
   mix+="[v$n]"
