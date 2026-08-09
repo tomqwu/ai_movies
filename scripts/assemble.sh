@@ -11,14 +11,23 @@ TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 mkdir -p "$OUT"
 
+# Early input validation: fail fast before any encoding.
+[ -d "$PROJ" ] || { echo "no such project dir: $PROJ" >&2; exit 1; }
+command -v python3 >/dev/null || { echo "python3 required" >&2; exit 1; }
+[ -f "$AUDIO/music.mp3" ] || { echo "missing $AUDIO/music.mp3" >&2; exit 1; }
+for i in 1 2 3 4 5 6 7; do
+  [ -f "$AUDIO/narrator/n0$i.wav" ] || { echo "missing narrator line: $AUDIO/narrator/n0$i.wav" >&2; exit 1; }
+done
+
 SHOTS=(sh01 sh02 sh03 sh04 sh05 sh06 sh07)
 
 # 1) Normalize every keeper: 1920x1080 (lanczos + light sharpen), 24fps, uniform codecs.
+# Keepers may come from heterogeneous encoders; uniform pix_fmt makes concat -c copy safe.
 for s in "${SHOTS[@]}"; do
   in="$CLIPS/$s.mp4"
   [ -f "$in" ] || { echo "missing keeper: $in" >&2; exit 1; }
   ffmpeg -y -v error -i "$in" \
-    -vf "scale=1920:1080:flags=lanczos,fps=24,unsharp=5:5:0.4" \
+    -vf "scale=1920:1080:flags=lanczos,fps=24,unsharp=5:5:0.4,format=yuv420p" \
     -af "aresample=48000" -ac 2 \
     -c:v libx264 -preset medium -crf 18 -c:a aac -b:a 192k \
     "$TMP/$s.mp4"
@@ -66,7 +75,7 @@ filter+=";[0:v]drawtext=fontfile=$FONT:text='COMING SOON.':fontsize=110:fontcolo
 ffmpeg -y -v error "${inputs[@]}" \
   -filter_complex "$filter" \
   -map "[vout]" -map "[aout]" \
-  -c:v libx264 -preset slow -crf 17 -c:a aac -b:a 256k -movflags +faststart \
+  -c:v libx264 -preset slow -crf 17 -c:a aac -b:a 256k -pix_fmt yuv420p -movflags +faststart \
   "$OUT/final_1080p.mp4"
 
 echo "Done: $OUT/final_1080p.mp4 (timeline ${TOTAL}s)"
