@@ -9,7 +9,7 @@ verified.
 
 | file | purpose | key settings |
 |---|---|---|
-| wf1_cast_sheet.json | character reference stills (FLUX) | seed + resolution per cast-sheet-prompts.md |
+| wf1_cast_sheet.json | character reference stills (FLUX) | 832×1216 default (individual refs); group shot switches to 1344×768 in-editor; seed per cast-sheet-prompts.md |
 | wf2_shot_r2v.json | per-shot video: H3 Reference-to-Video | 1344×768, 5 s, native audio; load refs from assets/refs/; paste prompt from prompts/shNN.md; seed from take-log convention |
 | wf3a_keyframe.json | fallback stage 1: Qwen-Image-Edit keyframe from refs | 1344×768 out |
 | wf3b_i2v.json | fallback stage 2: H3 Image-to-Video from keyframe | 1344×768, shot length |
