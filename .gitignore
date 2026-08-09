@@ -1,6 +1,10 @@
 # Generated media — takes, refs, audio, finals (kept local, reproducible via workflows + seeds)
-projects/*/assets/
-projects/*/output/
+projects/*/assets/**
+!projects/*/assets/**/
+!projects/*/assets/**/.gitkeep
+projects/*/output/**
+!projects/*/output/**/
+!projects/*/output/**/.gitkeep
 
 # OS / editor noise
 .DS_Store
