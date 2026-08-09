@@ -30,7 +30,7 @@ def main() -> None:
 
     total = sum(s["len"] for s in data["shots"])
     if not 28 <= total <= 32:
-        sys.exit(f"error: shot lengths sum to {total}s, expected ~30s")
+        sys.exit(f"error: shot lengths sum to {total}s, expected 28-32s")
 
     for shot in data["shots"]:
         dna = [load_block(chars_dir / f"{c}.md") for c in shot["chars"]]

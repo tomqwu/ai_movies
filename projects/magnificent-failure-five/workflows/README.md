@@ -57,7 +57,7 @@ audio track.
 
 `templates/qwen_image_edit.json` (subgraph "Image Edit (Qwen-Image 2511)") has **no width,
 height, or latent-size node anywhere in the file** — searched both the top-level `.nodes[]`
-and the subgraph's `.nodes[]` (17 nodes total: `ModelSamplingAuraFlow`, `VAELoader`,
+and the subgraph's `.nodes[]` (17 distinct node types: `ModelSamplingAuraFlow`, `VAELoader`,
 `FluxKontextMultiReferenceLatentMethod` ×2, `TextEncodeQwenImageEditPlus` ×2, `Note`,
 `CFGNorm`, `LoraLoaderModelOnly`, `PrimitiveFloat` ×2, `VAEEncode`, `UNETLoader`, `CLIPLoader`,
 `ComfySwitchNode` ×3, `PrimitiveInt` ×2, `PrimitiveBoolean`, `KSampler`, `VAEDecode`,
@@ -149,7 +149,7 @@ is `null`, and there is no `ref_image_3`…`ref_image_8` entry in the JSON at al
 simply stops at index 2). `ref_images` is a dynamic ("autogrow") input list: ComfyUI grows it by
 one more socket each time the current last socket gets connected, so sockets beyond what's
 already wired don't exist in the static JSON — they only appear once you connect the previous
-one, in the live editor. The template's own vendor documentation (node 105's `MarkdownNote`,
+one, in the live editor. The template's own vendor documentation (node 116's `MarkdownNote`,
 "About this workflow") states the node accepts **up to 9** reference images in total; that's a
 runtime ceiling on the dynamic list, not a count of sockets you'll see sitting empty in the JSON.
 For our 5 reference stills per shot, the operator duplicates the `LoadImage` node in the Comfy
@@ -210,8 +210,9 @@ nodes **self-reports `"properties.cnr_id": "comfy-core"`** directly in the JSON 
 `jq`), except `Note` (`cnr_id: null` — an annotation-only node, same harmless status as
 `MarkdownNote`), so no external lookup was needed for this file.
 
-`wf3b_i2v.json` adds one node type beyond what wf2's provenance write-up above already covers:
-`MiniMaxH3ImageToVideo`. Checked directly against `Comfy-Org/ComfyUI` core source (2026-08-09):
+`wf3b_i2v.json` adds three node types beyond what wf2's provenance write-up above already covers:
+`MiniMaxH3ImageToVideo`, `GetImageSize`, and `ImageScaleToTotalPixels` — each addressed below,
+starting with `MiniMaxH3ImageToVideo`. Checked directly against `Comfy-Org/ComfyUI` core source (2026-08-09):
 defined in the same file as the already-verified `MiniMaxH3ReferenceToVideo`,
 [`comfy_extras/nodes_minimax_h3.py`](https://github.com/Comfy-Org/ComfyUI/blob/master/comfy_extras/nodes_minimax_h3.py)
 (also defines `EmptyMiniMaxH3LatentAV` and `MiniMaxH3SigmaShift`, unused here), registered with

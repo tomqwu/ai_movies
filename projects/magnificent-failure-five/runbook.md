@@ -33,7 +33,7 @@ Per shot sh01 → sh07:
 ## Gate 4 — Assembly + final review (local)
 1. `scripts/assemble.sh projects/magnificent-failure-five`
 2. Review `output/final_1080p.mp4` against the spec checklist: 28–32 s total; narrator audible
-   over music (music sits −12 dB under VO by construction); no dead air; title lands on the
+   over music (music sits ~10-12 dB under VO by construction); no dead air; title lands on the
    final beat; every gag reads in one viewing.
 3. Fix list → regenerate only the offending shot (its seed + workflow are in the take log), re-run assembly.
 4. Ship. Commit the take log and push.
