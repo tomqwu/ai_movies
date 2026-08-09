@@ -1,0 +1,7 @@
+# Generated media — takes, refs, audio, finals (kept local, reproducible via workflows + seeds)
+projects/*/assets/
+projects/*/output/
+
+# OS / editor noise
+.DS_Store
+*.swp
